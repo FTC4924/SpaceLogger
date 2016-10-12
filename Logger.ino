@@ -13,6 +13,15 @@ Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
+String date;
+float ozone;
+float light;
+float UV;
+float pressure;
+float temperature;
+float altitude;
+boolean headerCreated = false;
+
 void setup () {
 
   while (!Serial); // for Leonardo/Micro/Zero
@@ -34,7 +43,12 @@ void setup () {
   if (!SD.begin(chipSelect)) {
     
     Serial.println("Card failed, or not present");
-    
+
+    while (true) {
+
+      blinkLED(250, 250, 3);
+    }
+
     return;
   }
   
@@ -42,7 +56,7 @@ void setup () {
 
   Serial.println("Pressure Sensor Test"); Serial.println("");
   
-  if(!bmp.begin()) {
+  if (!bmp.begin()) {
     
     Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
     while(1);
@@ -61,67 +75,135 @@ void loop () {
     File dataFile = SD.open("datalog.txt", FILE_WRITE);
     Serial.println("File opened");
 
-    DateTime now = rtc.now();
+    logHeader(dataFile);
 
-    dataFile.print(now.year(), DEC);
-    dataFile.print('/');
-    dataFile.print(now.month(), DEC);
-    dataFile.print('/');
-    dataFile.print(now.day(), DEC);
-    dataFile.print(" (");
-    dataFile.print(daysOfTheWeek[now.dayOfTheWeek()]);
-    dataFile.print(") ");
-    dataFile.print(now.hour(), DEC);
-    dataFile.print(':');
-    dataFile.print(now.minute(), DEC);
-    dataFile.print(':');
-    dataFile.print(now.second(), DEC);
-    dataFile.println();
-
-    dataFile.println("Ozone: ");
-    dataFile.print(analogRead(A0));
-    dataFile.print(" ppm");
-    dataFile.println("");
-
-    dataFile.println("Light: ");
-    dataFile.print(analogRead(A1));
-    dataFile.println("");
-
-    dataFile.println("UV: ");
-    dataFile.print(analogRead(A2));
-    dataFile.println("");
+    date = getDate();
+    ozone = getOzone();
+    light = getLight();
+    UV = getUV();
 
     sensors_event_t event;
     bmp.getEvent(&event);
  
     if (event.pressure) {
-    
-      dataFile.println("Pressure: ");
-      dataFile.print(event.pressure);
-      dataFile.print(" hPa");
-      dataFile.println("");
-      float temperature;
-      bmp.getTemperature(&temperature);
-      dataFile.println("Temperature: ");
-      dataFile.print(temperature);
-      dataFile.print(" C");
-      dataFile.println("");
  
-      float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
-      dataFile.println("Altitude: "); 
-      dataFile.print(bmp.pressureToAltitude(seaLevelPressure, event.pressure, temperature)); 
-      dataFile.println(" m");
-      dataFile.println("");
+      pressure = getPressure(event);
+      temperature = getTemperature();
+      altitude = getAltitude(event);
       
     } else {
       
       dataFile.println("Sensor error");
     }
+
+    logData(dataFile);
     
     dataFile.close();
 
-    digitalWrite(13, HIGH);
-    delay(2500);
-    digitalWrite(13, LOW);
-    delay(2500);
+    blinkLED(2500, 2500, 1);
 }
+
+void logHeader(File dataFile) {
+
+    if (!headerCreated) {
+
+        dataFile.print("Date, Ozone, Light, UV, Pressure, Temperature, Altitude");
+        headerCreated = true;
+    }
+}
+
+String getDate() {
+
+    DateTime now = rtc.now();
+
+    String date = "";
+
+    date += now.month();
+    date += '/';
+    date += now.day();
+    date += '/';
+    date += now.year();
+    date += ' ';
+    date += now.hour();
+    date += ':';
+    date += now.minute();
+    date += ':';
+    date += now.second();
+
+    return date;
+}
+
+float getOzone() {
+
+    return analogRead(A0);
+}
+
+float getLight() {
+
+    return analogRead(A1);
+}
+
+float getUV() {
+
+    return analogRead(A2);
+}
+
+float getPressure(sensors_event_t event) {
+
+    return event.pressure;
+}
+
+float getTemperature() {
+
+    float temperature;
+    bmp.getTemperature(&temperature);
+    return temperature;
+}
+
+float getAltitude(sensors_event_t event) {
+
+    float temperature;
+    bmp.getTemperature(&temperature);
+    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    return bmp.pressureToAltitude(seaLevelPressure, event.pressure, temperature); 
+}
+
+void logData(File dataFile) {
+
+    dataFile.println(date);
+    dataFile.print(", ");
+    dataFile.print(ozone);
+    dataFile.print(", ");
+    dataFile.print(light);
+    dataFile.print(", ");
+    dataFile.print(UV);
+    dataFile.print(", ");
+    dataFile.print(pressure);
+    dataFile.print(", ");
+    dataFile.print(temperature);
+    dataFile.print(", ");
+    dataFile.print(altitude);
+    dataFile.print(", ");
+}
+
+void LEDOn(int timeOn) {
+
+    digitalWrite(13, HIGH);
+    delay(timeOn);
+}
+
+void LEDOff(int timeOff) {
+
+    digitalWrite(13, LOW);
+    delay(timeOff);
+}
+
+void blinkLED(int timeOn, int timeOff, int numberOfBlinks) {
+
+  for (int blinkCount = 0 ; blinkCount < numberOfBlinks ; blinkCount++) {
+
+    LEDOn(timeOn);
+    LEDOff(timeOff);
+  }
+}
+
