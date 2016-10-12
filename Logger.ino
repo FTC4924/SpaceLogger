@@ -47,6 +47,7 @@ void setup () {
     while (true) {
 
       blinkLED(250, 250, 3);
+      delay(500);
     }
 
     return;
@@ -59,7 +60,12 @@ void setup () {
   if (!bmp.begin()) {
     
     Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
-    while(1);
+    
+     while (true) {
+
+      blinkLED(250, 250, 5);
+      delay(500);
+    }
   }
 
   Serial.println("Setting pin modes");
@@ -107,7 +113,7 @@ void logHeader(File dataFile) {
 
     if (!headerCreated) {
 
-        dataFile.print("Date, Ozone, Light, UV, Pressure, Temperature, Altitude");
+        dataFile.println("Date, Ozone, Light, UV, Pressure, Temperature, Altitude");
         headerCreated = true;
     }
 }
@@ -170,7 +176,7 @@ float getAltitude(sensors_event_t event) {
 
 void logData(File dataFile) {
 
-    dataFile.println(date);
+    dataFile.print(date);
     dataFile.print(", ");
     dataFile.print(ozone);
     dataFile.print(", ");
@@ -182,8 +188,7 @@ void logData(File dataFile) {
     dataFile.print(", ");
     dataFile.print(temperature);
     dataFile.print(", ");
-    dataFile.print(altitude);
-    dataFile.print(", ");
+    dataFile.println(altitude);
 }
 
 void LEDOn(int timeOn) {
