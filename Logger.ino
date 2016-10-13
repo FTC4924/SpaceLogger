@@ -24,7 +24,7 @@ boolean headerCreated = false;
 
 void setup () {
 
-  while (!Serial); // for Leonardo/Micro/Zero
+  //while (!Serial); // for Leonardo/Micro/Zero
 
   Serial.begin(57600);
   if (! rtc.begin()) {
